@@ -42,12 +42,15 @@
   #clearBtn:hover { background: #dce2ee; }
 
   .preview-wrap { background: #dfe4ee; border-radius: 8px; padding: 18px; overflow-x: auto; display: flex; justify-content: center; }
+  .tune { margin-top: 14px; font-size: 13px; color: var(--muted); }
+  .tune summary { cursor: pointer; }
+  .row3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
   .hint { font-size: 12px; color: var(--muted); margin-top: 10px; }
 
   /* The label sheet: landscape, W = label length, H = 72mm printable width of 80mm roll */
   .sheet {
     width: var(--len, 100mm); height: 72mm; background: #fff; color: #000;
-    border: 1.5px solid #000; display: grid; grid-template-columns: 1fr 1.25fr; grid-template-rows: 1fr auto;
+    border: 1.5px solid #000; padding: 4mm; display: grid; grid-template-columns: 1fr 1.25fr; grid-template-rows: 1fr auto;
     font-family: Arial, sans-serif; overflow: hidden;
   }
   .sheet .box { padding: 3mm; overflow: hidden; }
@@ -61,9 +64,9 @@
   .sheet .to .name { font-size: 19px; }
   .sheet .to #pPhone, .sheet .to .phone { font-weight: 800; font-size: 17px; }
   .sheet .to .txt { font-size: 15px; margin-top: 1mm; white-space: pre-wrap; word-break: break-word; }
-  .sheet .cod { grid-column: 1 / 3; display: flex; justify-content: space-between; align-items: center; padding: 2.5mm 3mm; }
-  .sheet .cod .lbl { font-size: 14px; font-weight: 700; }
-  .sheet .cod .amt { font-size: 30px; font-weight: 800; }
+  .sheet .cod { grid-column: 1 / 3; display: flex; justify-content: space-between; align-items: center; gap: 6mm; padding: 3mm; white-space: nowrap; }
+  .sheet .cod .lbl { font-size: 13px; font-weight: 700; }
+  .sheet .cod .amt { font-size: 22px; font-weight: 800; }
 
   /* margin:0 removes the browser's date / title / URL header and footer */
   @page { margin: 0; }
@@ -116,6 +119,16 @@
 
       <label class="check"><input type="checkbox" id="rotate" checked> Rotate 90&deg; (keep on if the printer driver is portrait)</label>
 
+      <details class="tune">
+        <summary>Fine tune position (if print is not centered)</summary>
+        <div class="row3">
+          <div><label for="dx">Move right (mm)</label><input id="dx" type="number" step="0.5" value="0"></div>
+          <div><label for="dy">Move down (mm)</label><input id="dy" type="number" step="0.5" value="0"></div>
+          <div><label for="scale">Scale (%)</label><input id="scale" type="number" step="1" min="50" max="130" value="100"></div>
+        </div>
+        <p class="hint">Directions are as shown in the preview. Use a negative number to move the other way. Saved on this computer.</p>
+      </details>
+
       <div class="actions">
         <button id="clearBtn" type="button">Clear</button>
         <button id="printBtn" type="button">Print</button>
@@ -139,7 +152,7 @@
             <div class="txt phone" id="pPhone"></div>
           </div>
           <div class="cod">
-            <span class="lbl">COD - TOTAL TO COLLECT</span>
+            <span class="lbl">TOTAL TO COLLECT</span>
             <span class="amt" id="pPrice">Rs. 0.00</span>
           </div>
         </div>
@@ -189,18 +202,26 @@
     clone.className = "sheet printSheet";
     area.appendChild(clone);
 
+    const dx = parseFloat($('dx').value) || 0;
+    const dy = parseFloat($('dy').value) || 0;
+    const s = (parseFloat($('scale').value) || 100) / 100;
+    try { localStorage.setItem('tune', JSON.stringify({ dx, dy, scale: s * 100 })); } catch (e) {}
+
+    // The sheet fills the whole page; dx/dy/scale are applied in sheet (preview) directions
     $('pageStyle').textContent = rotate
       ? `@page { size: 72mm ${len}mm; margin: 0; }
          @media print {
            html, body { margin: 0; padding: 0; }
            #printArea { position: relative; width: 72mm; height: ${len}mm; overflow: hidden; }
            .printSheet { position: absolute; top: 0; left: 0; width: ${len}mm; height: 72mm;
-                         transform-origin: top left; transform: translateX(72mm) rotate(90deg); border: 0; }
+                         transform-origin: top left;
+                         transform: translate(72mm, 0) rotate(90deg) translate(${dx}mm, ${dy}mm) scale(${s}); border: 0; }
          }`
       : `@page { size: ${len}mm 72mm; margin: 0; }
          @media print {
            html, body { margin: 0; padding: 0; }
-           .printSheet { width: ${len}mm; height: 72mm; border: 0; }
+           .printSheet { width: ${len}mm; height: 72mm; border: 0; transform-origin: top left;
+                         transform: translate(${dx}mm, ${dy}mm) scale(${s}); }
          }`;
 
     // Blank the title so it can't appear in a header even if headers are left on
@@ -209,6 +230,11 @@
     window.addEventListener('afterprint', () => { document.title = oldTitle; }, { once: true });
     window.print();
   });
+
+  try {
+    const t = JSON.parse(localStorage.getItem('tune') || 'null');
+    if (t) { $('dx').value = t.dx; $('dy').value = t.dy; $('scale').value = t.scale; }
+  } catch (e) {}
 
   updatePreview();
 </script>
