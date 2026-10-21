@@ -45,30 +45,32 @@
   .hint { font-size: 12px; color: var(--muted); margin-top: 10px; }
 
   /* The label sheet: landscape, W = label length, H = 72mm printable width of 80mm roll */
-  #sheet {
+  .sheet {
     width: var(--len, 100mm); height: 72mm; background: #fff; color: #000;
     border: 1.5px solid #000; display: grid; grid-template-columns: 1fr 1.25fr; grid-template-rows: 1fr auto;
     font-family: Arial, sans-serif; overflow: hidden;
   }
-  #sheet .box { padding: 3mm; overflow: hidden; }
-  #sheet .from { border-right: 1.5px solid #000; border-bottom: 1.5px solid #000; }
-  #sheet .to { border-bottom: 1.5px solid #000; }
-  #sheet .tag { font-size: 10px; font-weight: 700; letter-spacing: 1.5px; }
-  #sheet .name { font-weight: 700; margin-top: 1mm; }
-  #sheet .from .name { font-size: 15px; }
-  #sheet .from .txt { font-size: 13px; margin-top: 1mm; }
-  #sheet .to .name { font-size: 19px; }
-  #sheet .to .txt { font-size: 15px; margin-top: 1mm; white-space: pre-wrap; word-break: break-word; }
-  #sheet .cod { grid-column: 1 / 3; display: flex; justify-content: space-between; align-items: center; padding: 2.5mm 3mm; }
-  #sheet .cod .lbl { font-size: 14px; font-weight: 700; }
-  #sheet .cod .amt { font-size: 30px; font-weight: 800; }
+  .sheet .box { padding: 3mm; overflow: hidden; }
+  .sheet .from { border-right: 1.5px solid #000; border-bottom: 1.5px solid #000; }
+  .sheet .to { border-bottom: 1.5px solid #000; }
+  .sheet .tag { font-size: 10px; font-weight: 700; letter-spacing: 1.5px; }
+  .sheet .name { font-weight: 700; margin-top: 1mm; }
+  .sheet .from .name { font-size: 15px; }
+  .sheet .from .txt { font-size: 13px; margin-top: 1mm; }
+  .sheet .to .name { font-size: 19px; }
+  .sheet .to .txt { font-size: 15px; margin-top: 1mm; white-space: pre-wrap; word-break: break-word; }
+  .sheet .cod { grid-column: 1 / 3; display: flex; justify-content: space-between; align-items: center; padding: 2.5mm 3mm; }
+  .sheet .cod .lbl { font-size: 14px; font-weight: 700; }
+  .sheet .cod .amt { font-size: 30px; font-weight: 800; }
 
+  /* margin:0 removes the browser's date / title / URL header and footer */
+  @page { margin: 0; }
   @media print {
-    body { background: #fff; }
+    html, body { margin: 0; padding: 0; background: #fff; }
     header, main { display: none; }
-    #printArea { display: block; }
   }
   #printArea { display: none; }
+  @media print { #printArea { display: block; } }
 </style>
 <style id="pageStyle"></style>
 </head>
@@ -121,7 +123,7 @@
     <section class="card">
       <h2>Preview (landscape)</h2>
       <div class="preview-wrap">
-        <div id="sheet">
+        <div id="sheet" class="sheet">
           <div class="box from">
             <div class="tag">FROM</div>
             <div class="name">JAAN Network Pvt Ltd</div>
@@ -181,7 +183,7 @@
     area.innerHTML = '';
     const clone = $('sheet').cloneNode(true);
     clone.removeAttribute('id');
-    clone.className = 'printSheet';
+    clone.className = "sheet printSheet";
     area.appendChild(clone);
 
     $('pageStyle').textContent = rotate
@@ -198,6 +200,10 @@
            .printSheet { width: ${len}mm; height: 72mm; border: 0; }
          }`;
 
+    // Blank the title so it can't appear in a header even if headers are left on
+    const oldTitle = document.title;
+    document.title = ' ';
+    window.addEventListener('afterprint', () => { document.title = oldTitle; }, { once: true });
     window.print();
   });
 
