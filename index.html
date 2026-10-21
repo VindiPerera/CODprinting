@@ -1,0 +1,207 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>COD Label Printer</title>
+<style>
+  :root {
+    --bg: #eef1f6; --card: #fff; --ink: #1b2333; --muted: #6b7587;
+    --line: #dde2ec; --brand: #2563eb; --brand-dark: #1d4ed8;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: "Segoe UI", system-ui, Arial, sans-serif; background: var(--bg); color: var(--ink); }
+
+  header { background: linear-gradient(135deg, #1e3a8a, #2563eb); color: #fff; padding: 18px 24px; }
+  header h1 { margin: 0; font-size: 22px; }
+  header p { margin: 4px 0 0; font-size: 13px; opacity: .85; }
+
+  main { max-width: 1000px; margin: 24px auto; padding: 0 16px; display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  @media (max-width: 860px) { main { grid-template-columns: 1fr; } }
+
+  .card { background: var(--card); border-radius: 12px; padding: 22px; box-shadow: 0 2px 10px rgba(20,30,60,.08); }
+  .card h2 { margin: 0 0 14px; font-size: 16px; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; }
+
+  label { display: block; font-weight: 600; font-size: 13px; margin: 14px 0 5px; }
+  input, textarea, select { width: 100%; padding: 11px 12px; font-size: 16px; font-family: inherit; border: 1.5px solid var(--line); border-radius: 8px; background: #fff; color: var(--ink); }
+  input:focus, textarea:focus, select:focus { outline: none; border-color: var(--brand); box-shadow: 0 0 0 3px rgba(37,99,235,.15); }
+  textarea { resize: vertical; }
+  .row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+  .from-box { background: #f6f8fc; border: 1.5px dashed var(--line); border-radius: 8px; padding: 10px 12px; font-size: 14px; }
+  .from-box small { color: var(--muted); }
+
+  .check { display: flex; align-items: center; gap: 8px; font-weight: 400; font-size: 13px; color: var(--muted); margin-top: 14px; }
+  .check input { width: auto; }
+
+  .actions { display: flex; gap: 10px; margin-top: 18px; }
+  button { flex: 1; padding: 13px; font-size: 17px; font-weight: 600; border: 0; border-radius: 8px; cursor: pointer; }
+  #printBtn { background: var(--brand); color: #fff; }
+  #printBtn:hover { background: var(--brand-dark); }
+  #clearBtn { background: #e9edf5; color: var(--ink); flex: 0 0 90px; }
+  #clearBtn:hover { background: #dce2ee; }
+
+  .preview-wrap { background: #dfe4ee; border-radius: 8px; padding: 18px; overflow-x: auto; display: flex; justify-content: center; }
+  .hint { font-size: 12px; color: var(--muted); margin-top: 10px; }
+
+  /* The label sheet: landscape, W = label length, H = 72mm printable width of 80mm roll */
+  #sheet {
+    width: var(--len, 100mm); height: 72mm; background: #fff; color: #000;
+    border: 1.5px solid #000; display: grid; grid-template-columns: 1fr 1.25fr; grid-template-rows: 1fr auto;
+    font-family: Arial, sans-serif; overflow: hidden;
+  }
+  #sheet .box { padding: 3mm; overflow: hidden; }
+  #sheet .from { border-right: 1.5px solid #000; border-bottom: 1.5px solid #000; }
+  #sheet .to { border-bottom: 1.5px solid #000; }
+  #sheet .tag { font-size: 10px; font-weight: 700; letter-spacing: 1.5px; }
+  #sheet .name { font-weight: 700; margin-top: 1mm; }
+  #sheet .from .name { font-size: 15px; }
+  #sheet .from .txt { font-size: 13px; margin-top: 1mm; }
+  #sheet .to .name { font-size: 19px; }
+  #sheet .to .txt { font-size: 15px; margin-top: 1mm; white-space: pre-wrap; word-break: break-word; }
+  #sheet .cod { grid-column: 1 / 3; display: flex; justify-content: space-between; align-items: center; padding: 2.5mm 3mm; }
+  #sheet .cod .lbl { font-size: 14px; font-weight: 700; }
+  #sheet .cod .amt { font-size: 30px; font-weight: 800; }
+
+  @media print {
+    body { background: #fff; }
+    header, main { display: none; }
+    #printArea { display: block; }
+  }
+  #printArea { display: none; }
+</style>
+<style id="pageStyle"></style>
+</head>
+<body>
+  <header>
+    <h1>COD Label Printer</h1>
+    <p>JAAN Network Pvt Ltd &middot; XPrinter 80T (80mm)</p>
+  </header>
+
+  <main>
+    <section class="card">
+      <h2>Details</h2>
+
+      <label>From (fixed)</label>
+      <div class="from-box"><strong>JAAN Network Pvt Ltd</strong><br><small>46 Hudson Rd, Colombo 00300</small></div>
+
+      <label for="toName">To - Name</label>
+      <input id="toName" placeholder="Customer name" autofocus>
+
+      <label for="toPhone">To - Phone (optional)</label>
+      <input id="toPhone" type="tel" placeholder="07X XXX XXXX">
+
+      <label for="toAddress">To - Address</label>
+      <textarea id="toAddress" rows="3" placeholder="Customer address"></textarea>
+
+      <div class="row">
+        <div>
+          <label for="price">Total Price (Rs.)</label>
+          <input id="price" type="number" min="0" step="0.01" placeholder="0.00">
+        </div>
+        <div>
+          <label for="len">Label length</label>
+          <select id="len">
+            <option value="80">80 mm</option>
+            <option value="100" selected>100 mm</option>
+            <option value="120">120 mm</option>
+            <option value="150">150 mm</option>
+          </select>
+        </div>
+      </div>
+
+      <label class="check"><input type="checkbox" id="rotate" checked> Rotate 90&deg; (keep on if the printer driver is portrait)</label>
+
+      <div class="actions">
+        <button id="clearBtn" type="button">Clear</button>
+        <button id="printBtn" type="button">Print</button>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Preview (landscape)</h2>
+      <div class="preview-wrap">
+        <div id="sheet">
+          <div class="box from">
+            <div class="tag">FROM</div>
+            <div class="name">JAAN Network Pvt Ltd</div>
+            <div class="txt">46 Hudson Rd,<br>Colombo 00300</div>
+          </div>
+          <div class="box to">
+            <div class="tag">TO</div>
+            <div class="name" id="pName">Customer name</div>
+            <div class="txt" id="pAddress">Customer address</div>
+            <div class="txt" id="pPhone"></div>
+          </div>
+          <div class="cod">
+            <span class="lbl">COD - TOTAL TO COLLECT</span>
+            <span class="amt" id="pPrice">Rs. 0.00</span>
+          </div>
+        </div>
+      </div>
+      <p class="hint">This is exactly what will be printed.</p>
+    </section>
+  </main>
+
+  <div id="printArea"></div>
+
+<script>
+  const $ = id => document.getElementById(id);
+
+  const fmt = n => 'Rs. ' + n.toLocaleString('en-LK', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+  function updatePreview() {
+    $('pName').textContent = $('toName').value.trim() || 'Customer name';
+    $('pAddress').textContent = $('toAddress').value.trim() || 'Customer address';
+    const phone = $('toPhone').value.trim();
+    $('pPhone').textContent = phone ? 'Tel: ' + phone : '';
+    const price = parseFloat($('price').value);
+    $('pPrice').textContent = fmt(isNaN(price) ? 0 : price);
+    document.documentElement.style.setProperty('--len', $('len').value + 'mm');
+  }
+
+  ['toName', 'toPhone', 'toAddress', 'price', 'len'].forEach(id => $(id).addEventListener('input', updatePreview));
+
+  $('clearBtn').addEventListener('click', () => {
+    ['toName', 'toPhone', 'toAddress', 'price'].forEach(id => $(id).value = '');
+    updatePreview();
+    $('toName').focus();
+  });
+
+  $('printBtn').addEventListener('click', () => {
+    if (!$('toName').value.trim() || !$('toAddress').value.trim() || isNaN(parseFloat($('price').value))) {
+      alert('Please enter the name, address and total price.');
+      return;
+    }
+    const len = parseInt($('len').value, 10);
+    const rotate = $('rotate').checked;
+
+    // Print a clone of the sheet, rotated into a portrait page when requested
+    const area = $('printArea');
+    area.innerHTML = '';
+    const clone = $('sheet').cloneNode(true);
+    clone.removeAttribute('id');
+    clone.className = 'printSheet';
+    area.appendChild(clone);
+
+    $('pageStyle').textContent = rotate
+      ? `@page { size: 72mm ${len}mm; margin: 0; }
+         @media print {
+           html, body { margin: 0; padding: 0; }
+           #printArea { position: relative; width: 72mm; height: ${len}mm; overflow: hidden; }
+           .printSheet { position: absolute; top: 0; left: 0; width: ${len}mm; height: 72mm;
+                         transform-origin: top left; transform: translateX(72mm) rotate(90deg); border: 0; }
+         }`
+      : `@page { size: ${len}mm 72mm; margin: 0; }
+         @media print {
+           html, body { margin: 0; padding: 0; }
+           .printSheet { width: ${len}mm; height: 72mm; border: 0; }
+         }`;
+
+    window.print();
+  });
+
+  updatePreview();
+</script>
+</body>
+</html>
